@@ -1,43 +1,55 @@
 #python 2.7
+import pickle
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
-import networkx as nx	
+import networkx as nx
+from classes import *
+
+with open('foreground.pkl', 'rb') as fp:
+		foreground = pickle.load(fp)
+
+with open('background.pkl', 'rb') as fp:
+		background = pickle.load(fp)
+
 img = mpimg.imread('woman.jpg')
 imgplot = plt.imshow(img)
-lum_img = img
-plt.imshow(lum_img)
-plt.show()
-length, breadth = lum_img.shape[0], img.shape[1]
+plt.imshow(img)
+#plt.show()
+length, breadth = img.shape[0], img.shape[1]
 
-class Node:
-	def __init__(self, x, y, val):
-		self.x = x
-		self.y = y
-		self.val = val
-
-	def coordinates(self):
-		return (self.x, self.y)
-		
-	def val(self):
-		return val
-	  
 nodes = np.array([[Node(-1, -1,-1) for x in range(breadth)] for y in range(length)])
 
 arr = [[-1 for x in range(breadth)] for y in range(length)]
 
 G = nx.Graph()
+G.add_node('S')
+G.add_node('T')
 
 for i in range(0, length):
 	for j in range(0, breadth):
-		nodes[i,j] = Node(i, j, lum_img[i][j])
-		G.add_node((i,j), val = lum_img[i][j])#obj = nodes[i,j])
+		nodes[i,j] = Node(i, j, img[i][j])
+		G.add_node((i,j), val = img[i][j])#obj = nodes[i,j])
 		#print(nodes[i,j].coordinates(), nodes[i,j].val)
 		
-xs = nx.get_node_attributes(G, 'val')
-
-print type(G.nodes(data=True))
-print sorted(G.nodes(data=True))[0]
+		
+#print sorted(G.nodes(data=True))[0]
 
 value = nx.get_node_attributes(G,'val')
 print value[(0,0)]
+
+print "faorfawf"
+for pixel in foreground:
+	print value[pixel]
+	
+print "barbaof"
+for pixel in background:
+	print value[pixel]
+	
+xx = [value[pixel] for pixel in background]	
+print xx
+print any(np.array_equal(x, np.array([89,89,89]) for x in xx))
+
+x = value[(0,0)]
+print x
+print type(x)
