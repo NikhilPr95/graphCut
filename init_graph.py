@@ -5,9 +5,9 @@ import numpy as np
 import networkx as nx	
 img = mpimg.imread('woman.jpg')
 imgplot = plt.imshow(img)
-lum_img = img[:,:,0]
+lum_img = img
 plt.imshow(lum_img)
-
+plt.show()
 length, breadth = lum_img.shape[0], img.shape[1]
 
 class Node:
@@ -35,11 +35,6 @@ for i in range(0, length):
 		#print(nodes[i,j].coordinates(), nodes[i,j].val)
 		
 xs = nx.get_node_attributes(G, 'val')
-
-#print G.nodes(data=True)
-
-#for n in G.nodes(data=True):
-	#print n 
 
 print type(G.nodes(data=True))
 print sorted(G.nodes(data=True))[0]
