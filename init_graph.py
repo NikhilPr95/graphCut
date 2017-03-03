@@ -1,8 +1,9 @@
+#python 2.7
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import networkx as nx	
-img = mpimg.imread('stinkbug.png')
+img = mpimg.imread('woman.jpg')
 imgplot = plt.imshow(img)
 lum_img = img[:,:,0]
 plt.imshow(lum_img)
@@ -26,7 +27,7 @@ nodes = np.array([[Node(-1, -1,-1) for x in range(breadth)] for y in range(lengt
 arr = [[-1 for x in range(breadth)] for y in range(length)]
 
 G = nx.Graph()
-		
+
 for i in range(0, length):
 	for j in range(0, breadth):
 		nodes[i,j] = Node(i, j, lum_img[i][j])
@@ -34,8 +35,14 @@ for i in range(0, length):
 		#print(nodes[i,j].coordinates(), nodes[i,j].val)
 		
 xs = nx.get_node_attributes(G, 'val')
-print xs
 
-'red'
-#for node in G.nodes():
-#	print node.coordinates()
+#print G.nodes(data=True)
+
+#for n in G.nodes(data=True):
+	#print n 
+
+print type(G.nodes(data=True))
+print sorted(G.nodes(data=True))[0]
+
+value = nx.get_node_attributes(G,'val')
+print value[(0,0)]
