@@ -14,4 +14,5 @@ with open('graph.pkl', 'rb') as fp:
 		G = pickle.load(fp)
 
 #print G.nodes()[0]
-mincostFlow = nx.max_flow_min_cost(G, 1, 7)
+mincostFlow = nx.max_flow_min_cost(G, 'S', 'T')
+print mincostFlow

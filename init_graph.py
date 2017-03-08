@@ -54,16 +54,16 @@ def get_boundary_cost(node1, node2):
 def pixel_nodes(G):
 	return [node for node in sorted(G.nodes()) if node not in ['S', 'T']]
 	
-def add_neigbour_edges(G, max_neighbours_weight):
-	max_neighbours_weight = 0
+def add_neigbour_edges(G, max_neighbours_capacity):
+	max_neighbours_capacity = 0
 	for node in pixel_nodes(G):
 		contender = 0
 		for neigbour in get_neigbours(node):
 			boundary_cost = get_boundary_cost(node, neigbour)
-			G.add_edge(node, neigbour, weight = boundary_cost)
+			G.add_edge(node, neigbour, capacity = boundary_cost)
 			contender += boundary_cost
-		if contender > max_neighbours_weight:
-			max_neighbours_weight = contender
+		if contender > max_neighbours_capacity:
+			max_neighbours_capacity = contender
 
 def probability_of_background(node): #needs to be betterized
 	return background.count(node)/len(background)
@@ -86,24 +86,24 @@ def get_regional_background_cost(node):
 def add_source_edges(G):
 	for node in pixel_nodes(G):
 		if node in foreground:
-			G.add_edge('S', node, weight = ground_weight)
+			G.add_edge('S', node, capacity = ground_capacity)
 		elif node in background:
-			G.add_edge('S', node, weight = 0)
+			G.add_edge('S', node, capacity = 0)
 		else:
-			G.add_edge('S', node, weight = get_regional_foreground_cost(node))
+			G.add_edge('S', node, capacity = get_regional_foreground_cost(node))
 
 def add_sink_edges(G):
 	for node in pixel_nodes(G):
 		if node in background:
-			G.add_edge('T', node, weight = ground_weight)
+			G.add_edge('T', node, capacity = ground_capacity)
 		elif node in foreground:
-			G.add_edge('T', node, weight = 0)
+			G.add_edge('T', node, capacity = 0)
 		else:
-			G.add_edge('T', node, weight = get_regional_background_cost(node))
+			G.add_edge('T', node, capacity = get_regional_background_cost(node))
 			
-def add_edges(G, ground_weight, max_neighbours_weight):
-	add_neigbour_edges(G, max_neighbours_weight)
-	ground_weight = max_neighbours_weight + 1 #K
+def add_edges(G, ground_capacity, max_neighbours_capacity):
+	add_neigbour_edges(G, max_neighbours_capacity)
+	ground_capacity = max_neighbours_capacity + 1 #K
 	add_source_edges(G)
 	add_sink_edges(G)
 
@@ -118,8 +118,8 @@ min_x = 0
 min_y = 0
 max_x = length
 max_y = breadth
-ground_weight = 0
-max_neighbours_weight = 0
+ground_capacity = 0
+max_neighbours_capacity = 0
 nodes = np.array([[Node(-1, -1,-1) for x in range(breadth)] for y in range(length)])
 
 G = nx.Graph()
@@ -130,7 +130,7 @@ intensity = nx.get_node_attributes(G,'val')
 foreground_intensities = get_intensities(foreground)
 background_intensities = get_intensities(background)
 
-add_edges(G, ground_weight, max_neighbours_weight)	
+add_edges(G, ground_capacity, max_neighbours_capacity)	
 
 with open('graph.pkl', 'wb') as fp:
 	pickle.dump(G, fp, pickle.HIGHEST_PROTOCOL)
