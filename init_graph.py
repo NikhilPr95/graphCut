@@ -9,7 +9,6 @@ import networkx as nx
 import math
 from classes import *
 
-
 with open('foreground.pkl', 'rb') as fp:
 		foreground = pickle.load(fp)
 
@@ -132,9 +131,6 @@ foreground_intensities = get_intensities(foreground)
 background_intensities = get_intensities(background)
 
 add_edges(G, ground_weight, max_neighbours_weight)	
-print np.mean(intensity[sorted(G.nodes())[3]])
 
-
-#print("fg and prob")
-#for node in foreground:
-#	print node, probability_of_foreground(node), foreground.count(node)
+with open('graph.pkl', 'wb') as fp:
+	pickle.dump(G, fp, pickle.HIGHEST_PROTOCOL)
