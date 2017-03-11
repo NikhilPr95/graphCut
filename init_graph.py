@@ -78,6 +78,7 @@ def add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, 
 			contender += boundary_cost
 		if contender > max_neighbours_capacity:
 			max_neighbours_capacity = contender
+	return max_neighbours_capacity
 	
 def add_source_edges(G, intensity, ground_capacity, lambda_val):
 	for node in pixel_nodes(G):
@@ -98,7 +99,7 @@ def add_sink_edges(G, intensity, ground_capacity, lambda_val):
 			G.add_edge('T', node, capacity = lambda_val*get_regional_background_cost(node, intensity))
 			
 def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, length, breadth):
-	add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth)
+	max_neighbours_capacity = add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth)
 	ground_capacity = max_neighbours_capacity + 1
 	add_source_edges(G, intensity, ground_capacity, lambda_val)
 	add_sink_edges(G, intensity, ground_capacity, lambda_val)
@@ -118,7 +119,7 @@ def init(img_name):
 	img = mpimg.imread(img_name)
 	length, breadth = img.shape[0:2]
 	ground_capacity, max_neighbours_capacity = 0,0
-	gamma_val, sigma, lambda_val = 1, 5, 0
+	gamma_val, sigma, lambda_val = 1, 10, 21
 	G = nx.Graph()
 	add_nodes(G, img, length, breadth)
 	intensity = nx.get_node_attributes(G,'val')

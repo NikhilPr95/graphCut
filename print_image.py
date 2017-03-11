@@ -18,7 +18,12 @@ with open('flow_dict.pkl', 'rb') as fp:
 		
 length, breadth = img.shape[0:2]
 
+s = 0
 for i in range(0, length):
 	for j in range(0, breadth):
-		if flow_dict[(i,j)]['S'] == 1:
-			print img[i][j], flow_dict[(i,j)]['S']
+		#print img[i][j], flow_dict['S'][(i,j)], flow_dict[(i,j)]['S'], flow_dict['T'][(i,j)], flow_dict[(i,j)]['T']
+		s += flow_dict['S'][(i,j)]
+		
+print "sum of flows", s
+
+#print flow_dict
