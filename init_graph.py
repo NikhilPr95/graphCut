@@ -15,22 +15,15 @@ with open('foreground.pkl', 'rb') as fp:
 with open('background.pkl', 'rb') as fp:
 		background = pickle.load(fp)
 
-lambda_val = 1 # what should lambda_val be ?
+lambda_val = 21 # what should lambda_val be ? 7-43 in paper, i think
 gamma_val = 1
 sigma = 5
 
 def get_intensities(ndarray_of_pixels):
 	return [intensity[pixel] for pixel in ndarray_of_pixels]	
 
-def add_nodes(G):
-	G.add_node('S')
-	G.add_node('T')
-	for i in range(0, length):
-		for j in range(0, breadth):
-			nodes[i,j] = Node(i, j, img[i][j])
-			G.add_node((i,j), val = img[i][j])
-
-def get_neigbours((i, j)):
+def get_neigbours((i, j), length, breadth):
+	min_x, min_y, max_x, max_y = 0, 0, length, breadth
 	neigbours = []
 	for x in range(i-1, i+2):
 		for y in range(j-1, j+2):
@@ -42,95 +35,102 @@ def get_neigbours((i, j)):
 def square(x):
 	return x*x
 
-def squared_intensity_difference(node1, node2):
+
+def pixel_nodes(G):
+	return [node for node in sorted(G.nodes()) if node not in ['S', 'T']]
+
+def squared_intensity_difference(node1, node2, intensity):
 	return square(intensity[node1] - intensity[node2])
 
 def distance(node1, node2):
 	return math.sqrt(square(node1[0] - node2[0]) + square(node1[1] - node2[1]))
 
-def get_boundary_cost(node1, node2):		
-	return gamma_val*(math.exp(-1*(np.mean(squared_intensity_difference(node1, node2))/2*square(sigma)))/distance(node1, node2))
+def get_boundary_cost(node1, node2, intensity):		
+	return gamma_val*(math.exp(-1*(np.mean(squared_intensity_difference(node1, node2, intensity))/2*square(sigma)))/distance(node1, node2))
 
-def pixel_nodes(G):
-	return [node for node in sorted(G.nodes()) if node not in ['S', 'T']]
-	
-def add_neigbour_edges(G, max_neighbours_capacity):
+def probability_of_background(node, intensity): #needs to be betterized
+	count = [b for b in background if np.all(intensity[node] == intensity[b])] 
+	return len(count)/len(background)
+			
+def probability_of_foreground(node, intensity): #needs to be betterized
+	count = [f for f in foreground if np.all(intensity[node] == intensity[f])] 
+	return len(count)/len(foreground)		
+
+			
+def get_regional_foreground_cost(node, intensity): #needs to be betterized
+	prob = probability_of_foreground(node, intensity)
+	if prob == 0:
+		prob = 1e-320
+	return -1*(math.log(prob))
+
+def get_regional_background_cost(node, intensity):
+	prob = probability_of_background(node, intensity)
+	if prob == 0:
+		prob = 1e-320
+	return -1*(math.log(prob))
+
+def add_neigbour_edges(G, max_neighbours_capacity, intensity, length, breadth):
 	max_neighbours_capacity = 0
 	for node in pixel_nodes(G):
 		contender = 0
-		for neigbour in get_neigbours(node):
-			boundary_cost = get_boundary_cost(node, neigbour)
+		for neigbour in get_neigbours(node, length, breadth):
+			boundary_cost = get_boundary_cost(node, neigbour, intensity)
 			G.add_edge(node, neigbour, capacity = boundary_cost)
 			contender += boundary_cost
 		if contender > max_neighbours_capacity:
 			max_neighbours_capacity = contender
-
-def probability_of_background(node): #needs to be betterized
-	return background.count(node)/len(background)
-			
-def probability_of_foreground(node): #needs to be betterized
-	return foreground.count(node)/len(foreground)
-			
-def get_regional_foreground_cost(node): #needs to be betterized
-	prob = probability_of_foreground(node)
-	if prob == 0:
-		prob = 1e-320
-	return -1*(math.log(prob))
-
-def get_regional_background_cost(node):
-	prob = probability_of_background(node)
-	if prob == 0:
-		prob = 1e-320
-	return -1*(math.log(prob))
 	
-def add_source_edges(G):
+def add_source_edges(G, intensity, ground_capacity):
 	for node in pixel_nodes(G):
 		if node in foreground:
 			G.add_edge('S', node, capacity = ground_capacity)
 		elif node in background:
 			G.add_edge('S', node, capacity = 0)
 		else:
-			G.add_edge('S', node, capacity = get_regional_foreground_cost(node))
+			G.add_edge('S', node, capacity = get_regional_foreground_cost(node, intensity))
 
-def add_sink_edges(G):
+def add_sink_edges(G, intensity, ground_capacity):
 	for node in pixel_nodes(G):
 		if node in background:
 			G.add_edge('T', node, capacity = ground_capacity)
 		elif node in foreground:
 			G.add_edge('T', node, capacity = 0)
 		else:
-			G.add_edge('T', node, capacity = get_regional_background_cost(node))
+			G.add_edge('T', node, capacity = get_regional_background_cost(node, intensity))
 			
-def add_edges(G, ground_capacity, max_neighbours_capacity):
-	add_neigbour_edges(G, max_neighbours_capacity)
-	ground_capacity = max_neighbours_capacity + 1 #K
-	add_source_edges(G)
-	add_sink_edges(G)
+def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, length, breadth):
+	add_neigbour_edges(G, max_neighbours_capacity, intensity, length, breadth)
+	ground_capacity = max_neighbours_capacity + 1
+	add_source_edges(G, intensity, ground_capacity)
+	add_sink_edges(G, intensity, ground_capacity)
 
+def add_nodes(G, img, length, breadth):
+	G.add_node('S')
+	G.add_node('T')
+	for i in range(0, length):
+		for j in range(0, breadth):
+			G.add_node((i,j), val = img[i][j])
+	
 def print_edges(G):
 	for edge in G.edges(data=True):
 		print edge, intensity[edge[0]]#, intensity[edge[1]], distance(edge[0],edge[1])
 	
+def init(img_name):
+	img = mpimg.imread(img_name)
+	length, breadth = img.shape[0:2]
+	ground_capacity, max_neighbours_capacity = 0,0
+	G = nx.Graph()
+	add_nodes(G, img, length, breadth)
+	intensity = nx.get_node_attributes(G,'val')
+	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, length, breadth)	
+	print img
+	print img.shape
+	return G, img
 	
-img = mpimg.imread('woman.jpg')
-length, breadth = img.shape[0:2]
-min_x = 0
-min_y = 0
-max_x = length
-max_y = breadth
-ground_capacity = 0
-max_neighbours_capacity = 0
-nodes = np.array([[Node(-1, -1,-1) for x in range(breadth)] for y in range(length)])
-
-G = nx.Graph()
-
-add_nodes(G)
-
-intensity = nx.get_node_attributes(G,'val')
-foreground_intensities = get_intensities(foreground)
-background_intensities = get_intensities(background)
-
-add_edges(G, ground_capacity, max_neighbours_capacity)	
+G, img = init('woman.jpg')
 
 with open('graph.pkl', 'wb') as fp:
 	pickle.dump(G, fp, pickle.HIGHEST_PROTOCOL)
+	
+with open('img.pkl', 'wb') as fp:
+	pickle.dump(img, fp, pickle.HIGHEST_PROTOCOL)
