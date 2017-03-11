@@ -15,9 +15,8 @@ with open('foreground.pkl', 'rb') as fp:
 with open('background.pkl', 'rb') as fp:
 		background = pickle.load(fp)
 
-lambda_val = 21 # what should lambda_val be ? 7-43 in paper, i think
-gamma_val = 1
-sigma = 5
+#lambda_val = 21 # what should lambda_val be ? 7-43 in paper, i think
+#sigma = 5
 
 def get_intensities(ndarray_of_pixels):
 	return [intensity[pixel] for pixel in ndarray_of_pixels]	
@@ -45,7 +44,7 @@ def squared_intensity_difference(node1, node2, intensity):
 def distance(node1, node2):
 	return math.sqrt(square(node1[0] - node2[0]) + square(node1[1] - node2[1]))
 
-def get_boundary_cost(node1, node2, intensity):		
+def get_boundary_cost(node1, node2, intensity, gamma_val, sigma):		
 	return gamma_val*(math.exp(-1*(np.mean(squared_intensity_difference(node1, node2, intensity))/2*square(sigma)))/distance(node1, node2))
 
 def probability_of_background(node, intensity): #needs to be betterized
@@ -69,40 +68,40 @@ def get_regional_background_cost(node, intensity):
 		prob = 1e-320
 	return -1*(math.log(prob))
 
-def add_neigbour_edges(G, max_neighbours_capacity, intensity, length, breadth):
+def add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth):
 	max_neighbours_capacity = 0
 	for node in pixel_nodes(G):
 		contender = 0
 		for neigbour in get_neigbours(node, length, breadth):
-			boundary_cost = get_boundary_cost(node, neigbour, intensity)
+			boundary_cost = get_boundary_cost(node, neigbour, intensity, gamma_val, sigma)
 			G.add_edge(node, neigbour, capacity = boundary_cost)
 			contender += boundary_cost
 		if contender > max_neighbours_capacity:
 			max_neighbours_capacity = contender
 	
-def add_source_edges(G, intensity, ground_capacity):
+def add_source_edges(G, intensity, ground_capacity, lambda_val):
 	for node in pixel_nodes(G):
 		if node in foreground:
 			G.add_edge('S', node, capacity = ground_capacity)
 		elif node in background:
 			G.add_edge('S', node, capacity = 0)
 		else:
-			G.add_edge('S', node, capacity = get_regional_foreground_cost(node, intensity))
+			G.add_edge('S', node, capacity = lambda_val*get_regional_foreground_cost(node, intensity))
 
-def add_sink_edges(G, intensity, ground_capacity):
+def add_sink_edges(G, intensity, ground_capacity, lambda_val):
 	for node in pixel_nodes(G):
 		if node in background:
 			G.add_edge('T', node, capacity = ground_capacity)
 		elif node in foreground:
 			G.add_edge('T', node, capacity = 0)
 		else:
-			G.add_edge('T', node, capacity = get_regional_background_cost(node, intensity))
+			G.add_edge('T', node, capacity = lambda_val*get_regional_background_cost(node, intensity))
 			
-def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, length, breadth):
-	add_neigbour_edges(G, max_neighbours_capacity, intensity, length, breadth)
+def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, length, breadth):
+	add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth)
 	ground_capacity = max_neighbours_capacity + 1
-	add_source_edges(G, intensity, ground_capacity)
-	add_sink_edges(G, intensity, ground_capacity)
+	add_source_edges(G, intensity, ground_capacity, lambda_val)
+	add_sink_edges(G, intensity, ground_capacity, lambda_val)
 
 def add_nodes(G, img, length, breadth):
 	G.add_node('S')
@@ -119,12 +118,11 @@ def init(img_name):
 	img = mpimg.imread(img_name)
 	length, breadth = img.shape[0:2]
 	ground_capacity, max_neighbours_capacity = 0,0
+	gamma_val, sigma, lambda_val = 1, 5, 0
 	G = nx.Graph()
 	add_nodes(G, img, length, breadth)
 	intensity = nx.get_node_attributes(G,'val')
-	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, length, breadth)	
-	print img
-	print img.shape
+	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, length, breadth)	
 	return G, img
 	
 G, img = init('woman.jpg')
