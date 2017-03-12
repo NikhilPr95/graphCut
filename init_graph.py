@@ -9,12 +9,15 @@ import networkx as nx
 import math
 from classes import *
 
-with open('foreground.pkl', 'rb') as fp:
+with open('foreground_assigned.pkl', 'rb') as fp:
 		foreground = pickle.load(fp)
 
-with open('background.pkl', 'rb') as fp:
+with open('background_assigned.pkl', 'rb') as fp:
 		background = pickle.load(fp)
 
+with open('img.pkl', 'rb') as fp:
+		img = pickle.load(fp)
+		
 #lambda_val = 21 # what should lambda_val be ? 7-43 in paper, i think
 #sigma = 5
 
@@ -52,6 +55,7 @@ def probability_of_background(node, intensity): #needs to be betterized
 	return len(count)/len(background)
 			
 def probability_of_foreground(node, intensity): #needs to be betterized
+	#print(intensity[node])
 	count = [f for f in foreground if np.all(intensity[node] == intensity[f])] 
 	return len(count)/len(foreground)		
 
@@ -115,21 +119,18 @@ def print_edges(G):
 	for edge in G.edges(data=True):
 		print edge, intensity[edge[0]]#, intensity[edge[1]], distance(edge[0],edge[1])
 	
-def init(img_name):
-	img = mpimg.imread(img_name)
+def init(img):	
 	length, breadth = img.shape[0:2]
 	ground_capacity, max_neighbours_capacity = 0,0
-	gamma_val, sigma, lambda_val = 1, 10, 21
+	gamma_val, sigma, lambda_val = 1, 12, 6
 	G = nx.Graph()
 	add_nodes(G, img, length, breadth)
 	intensity = nx.get_node_attributes(G,'val')
 	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, length, breadth)	
 	return G, img
+
 	
-G, img = init('woman.jpg')
+G, img = init(img)
 
 with open('graph.pkl', 'wb') as fp:
 	pickle.dump(G, fp, pickle.HIGHEST_PROTOCOL)
-	
-with open('img.pkl', 'wb') as fp:
-	pickle.dump(img, fp, pickle.HIGHEST_PROTOCOL)

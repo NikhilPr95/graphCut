@@ -2,15 +2,15 @@ import pickle
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
-im = mpimg.imread('woman.jpg')
+img_name = 'woman.jpg'
 
+img = mpimg.imread(img_name)
+	
 def initialize_image():
 	ax = plt.gca()
 	fig = plt.gcf()
-	implot = ax.imshow(im)
+	implot = ax.imshow(img)
 	cid = fig.canvas.mpl_connect('button_press_event', onclick)
-	#line, = ax.plot([], [], linestyle="none", marker="o", color="r")
-	#linebuilder = LineBuilder(line)
 
 def onclick(event):
 	x, y = round(event.xdata), round(event.ydata)
@@ -39,8 +39,11 @@ assign(background, coords, 'b', 'background')
 print("fg", foreground)
 print("bg", background)
 
-with open('foreground.pkl', 'wb') as fp:
+with open('foreground_assigned.pkl', 'wb') as fp:
 	pickle.dump(foreground, fp, pickle.HIGHEST_PROTOCOL)
 	
-with open('background.pkl', 'wb') as fp:
-	pickle.dump(background, fp, pickle.HIGHEST_PROTOCOL)	
+with open('background_assigned.pkl', 'wb') as fp:
+	pickle.dump(background, fp, pickle.HIGHEST_PROTOCOL)
+	
+with open('img.pkl', 'wb') as fp:
+	pickle.dump(img, fp, pickle.HIGHEST_PROTOCOL)

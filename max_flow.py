@@ -34,3 +34,9 @@ with open('flow_dict.pkl', 'wb') as fp:
 
 cut_value, partition = nx.minimum_cut(G, 'S', 'T')
 foreground, background = partition
+
+with open('foreground_partition.pkl', 'wb') as fp:
+	pickle.dump(foreground, fp, pickle.HIGHEST_PROTOCOL)
+	
+with open('background_partition.pkl', 'wb') as fp:
+	pickle.dump(background, fp, pickle.HIGHEST_PROTOCOL)

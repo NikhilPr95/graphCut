@@ -13,17 +13,29 @@ from networkx.algorithms.flow import maximum_flow
 with open('img.pkl', 'rb') as fp:
 		img = pickle.load(fp)
 
-with open('flow_dict.pkl', 'rb') as fp:
-		flow_dict = pickle.load(fp)
+with open('foreground_partition.pkl', 'rb') as fp:
+		foreground = pickle.load(fp)
+
+with open('background_partition.pkl', 'rb') as fp:
+		background = pickle.load(fp)
 		
 length, breadth = img.shape[0:2]
 
-s = 0
-for i in range(0, length):
-	for j in range(0, breadth):
-		#print img[i][j], flow_dict['S'][(i,j)], flow_dict[(i,j)]['S'], flow_dict['T'][(i,j)], flow_dict[(i,j)]['T']
-		s += flow_dict['S'][(i,j)]
-		
-print "sum of flows", s
+print "Fore"
+#print foreground		
 
+print "Back"
+#print background
+
+for node in background:
+	try:
+		i, j = node
+		img[i][j] = [0,0,0]
+	except:
+		x=1#print node
+		
+
+			
+plt.imshow(img)
+plt.show()
 #print flow_dict
