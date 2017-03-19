@@ -2,7 +2,7 @@ import pickle
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
-img_name = 'woman.jpg'
+img_name = 'blacktoucan.jpg'
 
 img = mpimg.imread(img_name)
 	
@@ -15,7 +15,7 @@ def initialize_image():
 def onclick(event):
 	x, y = round(event.xdata), round(event.ydata)
 	if x != None and y != None:
-		coords.append((x,y))
+		coords.append((y,x))
 
 def set_and_delete(ground, coords):
 	ground[:] = coords[:]
