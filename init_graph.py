@@ -41,6 +41,8 @@ def squared_diff(li, val):
 def gaussian_function(li, intensity):
 	intensities =  get_intensities(li, intensity)	
 	mean = np.sum(intensities, axis=0)/len(intensities)
+	#print "mean", mean
+	#print "intensities", intensities
 	variance = np.sum(squared_diff(intensities, mean))/len(intensities)
 	return mean, variance
 
@@ -59,23 +61,40 @@ def z_score(val, mean, variance):
 def get_boundary_cost(node1, node2, intensity, gamma_val, sigma):		
 	return gamma_val*(math.exp(-1*(np.mean(squared_intensity_difference(node1, node2, intensity))/2*square(sigma)))/distance(node1, node2))
 
-def probability_of_background(node, intensity): #needs to be betterized
-	count = [b for b in background if np.all(intensity[node] == intensity[b])] 
-	return len(count)/len(background)
+def probability_of_background(node, background, bg_variance, intensity): #needs to be betterized
+	max_prob = 0
+	for b_node in background:
+		prob = abs(np.mean(z_score(intensity[node], intensity[b_node], bg_variance)))
+		if prob > max_prob:
+			max_prob = prob
 			
-def probability_of_foreground(node, intensity): #needs to be betterized
-	count = [f for f in foreground if np.all(intensity[node] == intensity[f])] 
-	return len(count)/len(foreground)		
+	return max_prob
+	#count = [b for b in background if np.all(intensity[node] == intensity[b])] 
+	#return len(count)/len(background)
+			
+def probability_of_foreground(node, foreground, fg_variance, intensity): #needs to be betterized
+	max_prob = 0
+	for f_node in foreground:
+		prob = abs(np.mean(z_score(intensity[node], intensity[f_node], fg_variance)))
+		if prob > max_prob:
+			max_prob = prob
+			
+	return max_prob
+	
+	#count = [f for f in foreground if np.all(intensity[node] == intensity[f])] 
+	#return len(count)/len(foreground)		
 
 			
-def get_regional_foreground_cost(node, intensity, fg_mean, fg_variance): #needs to be betterized
-	prob = abs(np.mean(z_score(intensity[node], fg_mean, fg_variance))) #prob = probability_of_foreground(node, intensity)
+def get_regional_foreground_cost(node, intensity, foreground, fg_mean, fg_variance): #needs to be betterized
+	#prob = abs(np.mean(z_score(intensity[node], fg_mean, fg_variance))) #
+	prob = probability_of_foreground(node, foreground, fg_variance, intensity)
 	#if prob == 0:
 	#	prob = 1e-320
 	return -1*(math.log(prob))
 
-def get_regional_background_cost(node, intensity, bg_mean, bg_variance):
-	prob = abs(np.mean(z_score(intensity[node], bg_mean, bg_variance))) #prob = probability_of_background(node, intensity)
+def get_regional_background_cost(node, intensity, background, bg_mean, bg_variance):
+	#prob = abs(np.mean(z_score(intensity[node], bg_mean, bg_variance))) #
+	prob = probability_of_background(node, background, bg_variance, intensity)
 	#if prob == 0:
 	#	prob = 1e-320
 	return -1*(math.log(prob))
@@ -92,29 +111,31 @@ def add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, 
 			max_neighbours_capacity = contender
 	return max_neighbours_capacity
 	
-def add_source_edges(G, intensity, ground_capacity, lambda_val, fg_mean, fg_variance):
+def add_source_edges(G, intensity, ground_capacity, lambda_val, foreground, fg_mean, fg_variance):
 	for node in pixel_nodes(G):
 		if node in foreground:
 			G.add_edge('S', node, capacity = ground_capacity)
 		elif node in background:
 			G.add_edge('S', node, capacity = 0)
 		else:
-			G.add_edge('S', node, capacity = lambda_val*get_regional_foreground_cost(node, intensity, fg_mean, fg_variance))
+			G.add_edge('S', node, capacity = lambda_val*get_regional_foreground_cost(node, intensity, foreground, fg_mean, fg_variance))
 
-def add_sink_edges(G, intensity, ground_capacity, lambda_val, bg_mean, bg_variance):
+def add_sink_edges(G, intensity, ground_capacity, lambda_val, background, bg_mean, bg_variance):
 	for node in pixel_nodes(G):
 		if node in background:
 			G.add_edge('T', node, capacity = ground_capacity)
 		elif node in foreground:
 			G.add_edge('T', node, capacity = 0)
 		else:
-			G.add_edge('T', node, capacity = lambda_val*get_regional_background_cost(node, intensity, bg_mean, bg_variance))
+			G.add_edge('T', node, capacity = lambda_val*get_regional_background_cost(node, intensity, background, bg_mean, bg_variance))
 			
-def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, fg_mean, fg_variance, bg_mean, bg_variance, length, breadth):
+def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, foreground, fg_mean, fg_variance, background, bg_mean, bg_variance, length, breadth):
 	max_neighbours_capacity = add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth)
 	ground_capacity = max_neighbours_capacity + 1
-	add_source_edges(G, intensity, ground_capacity, lambda_val, fg_mean, fg_variance)
-	add_sink_edges(G, intensity, ground_capacity, lambda_val, bg_mean, bg_variance)
+	print ('adding source edges')
+	add_source_edges(G, intensity, ground_capacity, lambda_val, foreground, fg_mean, fg_variance)
+	print ('adding sink edges')
+	add_sink_edges(G, intensity, ground_capacity, lambda_val, background, bg_mean, bg_variance)
 
 def add_nodes(G, img, length, breadth):
 	G.add_node('S')
@@ -137,14 +158,17 @@ def print_edges(G):
 def init(img):	
 	length, breadth = img.shape[0:2]
 	print (img.shape[0:2])
+	#print "fg", foreground
+	#print "bg", background
 	ground_capacity, max_neighbours_capacity = 0,0
-	gamma_val, sigma, lambda_val = 1e32, 1e32, 1e32
+	gamma_val, sigma, lambda_val = 35, 0.5, 2
 	G = nx.Graph()
 	add_nodes(G, img, length, breadth)
 	intensity = nx.get_node_attributes(G,'val')
 	fg_mean, fg_variance = gaussian_function(foreground, intensity)
 	bg_mean, bg_variance = gaussian_function(background, intensity)
-	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, fg_mean, fg_variance, bg_mean, bg_variance, length, breadth)	
+	print('adding edges')
+	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, foreground, fg_mean, fg_variance, background, bg_mean, bg_variance, length, breadth)	
 	
 	return G, img
 

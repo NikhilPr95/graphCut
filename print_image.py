@@ -30,7 +30,7 @@ print "Back"
 for node in background:
 	try:
 		i, j = node
-		img[i][j] = [0,0,0]
+		img[i][j] = [255,0,0]
 	except:
 		x=1#print node
 		

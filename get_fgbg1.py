@@ -5,37 +5,10 @@ import numpy as np
 import cv2
 import sys
 
-img_name = 'blacktoucan.jpg'
+#img_name = 'blacktoucan.jpg'
 
-img1 = mpimg.imread(img_name)
-'''	
-def initialize_image():
-	ax = plt.gca()
-	fig = plt.gcf()
-	implot = ax.imshow(img)
-	cid = fig.canvas.mpl_connect('button_press_event', onclick)
+#img1 = mpimg.imread(img_name)
 
-def onclick(event):
-	x, y = round(event.xdata), round(event.ydata)
-	if x != None and y != None:
-		coords.append((y,x))
-
-def set_and_delete(ground, coords):
-	ground[:] = coords[:]
-	del coords[:]
-
-def assign(ground, coords, char, type):
-	print("You wil be shown the image. Press " + char + " to start marking " + type + " and x when you're done")	
-	ch = raw_input()
-	if (ch == char):
-		initialize_image()
-		plt.show()
-		set_and_delete(ground, coords)
-	
-coords = []
-foreground = []
-background = []
-'''
 BLACK = [0,0,0]         # sure BG
 WHITE = [255,255,255]   # sure FG
 
@@ -96,17 +69,20 @@ cv2.destroyAllWindows()
 
 fg = list(set(fg))
 bg = list(set(bg))
-#print fg
-#print bg
-	
-#assign(fg, coords, 'a', 'foreground')
-#assign(bg, coords, 'b', 'background')
+exf = [f for f in fg if (f[0] >= img.shape[0] or f[1] >= img.shape[1] or f[0] < 0 or f[1] < 0)]
+exb = [b for b in bg if (b[0] >= img.shape[0] or b[1] >= img.shape[1] or b[0] < 0 or b[1] < 0)]
+print "exceed", exf
+print "exceed", exb
 
-#print("fg", foreground)
-#print("bg", background)
+fg = [f for f in fg if f not in exf]
+bg = [b for b in bg if b not in exb]
 
-#print foreground
-#print background
+print "fg", fg
+print "bg", bg
+
+print("img", img)
+img = mpimg.imread(sys.argv[1])
+
 with open('foreground_assigned.pkl', 'wb') as fp:
 	pickle.dump(fg, fp, pickle.HIGHEST_PROTOCOL)
 	
@@ -114,4 +90,4 @@ with open('background_assigned.pkl', 'wb') as fp:
 	pickle.dump(bg, fp, pickle.HIGHEST_PROTOCOL)
 	
 with open('img.pkl', 'wb') as fp:
-	pickle.dump(img1, fp, pickle.HIGHEST_PROTOCOL)
+	pickle.dump(img, fp, pickle.HIGHEST_PROTOCOL)

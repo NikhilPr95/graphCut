@@ -1,8 +1,9 @@
 import pickle
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import sys
 
-img_name = 'blacktoucan.jpg'
+img_name = sys.argv[1]
 
 img = mpimg.imread(img_name)
 	
