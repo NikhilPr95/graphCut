@@ -77,10 +77,6 @@ print "exceed", exb
 fg = [f for f in fg if f not in exf]
 bg = [b for b in bg if b not in exb]
 
-print "fg", fg
-print "bg", bg
-
-print("img", img)
 img = mpimg.imread(sys.argv[1])
 
 with open('foreground_assigned.pkl', 'wb') as fp:
