@@ -15,6 +15,7 @@ with open('graph.pkl', 'rb') as fp:
 
 print("computing max flow")
 
+#computes the minimum cut and performs partition
 cut_value, partition = nx.minimum_cut(G, 'S', 'T')
 foreground, background = partition
 

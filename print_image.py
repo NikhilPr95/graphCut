@@ -21,21 +21,14 @@ with open('background_partition.pkl', 'rb') as fp:
 		
 length, breadth = img.shape[0:2]
 
-print "Fore"
-#print foreground		
-
-print "Back"
-#print background
-
+#marks the background
 for node in background:
 	try:
 		i, j = node
 		img[i][j] = [255,0,0]
 	except:
-		x=1#print node
+		x=1
 		
-
 			
 plt.imshow(img)
 plt.show()
-#print flow_dict

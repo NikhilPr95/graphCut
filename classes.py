@@ -1,3 +1,4 @@
+#node class representing each pixel
 class Node:
 	def __init__(self, x, y, val):
 		self.x = x
@@ -9,7 +10,7 @@ class Node:
 		
 	def val(self):
 		return val
-		
+
 class LineBuilder:
     def __init__(self, line):
         self.line = line

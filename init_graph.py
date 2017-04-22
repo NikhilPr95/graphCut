@@ -10,12 +10,14 @@ import networkx as nx
 import math
 from classes import *
 
+#getting seeds
 with open('foreground_assigned.pkl', 'rb') as fp:
 		foreground = pickle.load(fp)
 
 with open('background_assigned.pkl', 'rb') as fp:
 		background = pickle.load(fp)
 
+#getting image
 with open('img.pkl', 'rb') as fp:
 		img = pickle.load(fp)
 		
@@ -39,12 +41,14 @@ def square(x):
 def squared_diff(li, val):
 	return [(x - val) ** 2 for x in li]
 	
+#returns mean and variance
 def gaussian_function(li, intensity):
 	intensities =  get_intensities(li, intensity)	
 	mean = np.sum(intensities, axis=0)/len(intensities)
 	variance = np.sum(squared_diff(intensities, mean))/len(intensities)
 	return mean, variance
 
+#returns non-virtual nodes
 def pixel_nodes(G):
 	return [node for node in sorted(G.nodes()) if node not in ['S', 'T']]
 
@@ -60,7 +64,8 @@ def z_score(val, mean, variance):
 def get_boundary_cost(node1, node2, intensity, gamma_val, sigma):		
 	return gamma_val*(math.exp(-1*(np.mean(squared_intensity_difference(node1, node2, intensity))/2*square(sigma)))/distance(node1, node2))
 
-def probability_of_background(node, background, bg_variance, intensity): #needs to be betterized
+#estimates probability using gaussian functions for each distinct seed			
+def probability_of_background(node, background, bg_variance, intensity): 
 	max_prob = 0
 	for b_node in background:
 		prob = abs(np.mean(z_score(intensity[node], intensity[b_node], bg_variance)))
@@ -68,8 +73,9 @@ def probability_of_background(node, background, bg_variance, intensity): #needs 
 			max_prob = prob
 			
 	return max_prob
-			
-def probability_of_foreground(node, foreground, fg_variance, intensity): #needs to be betterized
+
+#estimates probability using gaussian functions for each distinct seed			
+def probability_of_foreground(node, foreground, fg_variance, intensity):
 	max_prob = 0
 	for f_node in foreground:
 		prob = abs(np.mean(z_score(intensity[node], intensity[f_node], fg_variance)))
@@ -79,7 +85,7 @@ def probability_of_foreground(node, foreground, fg_variance, intensity): #needs 
 	return max_prob
 	
 			
-def get_regional_foreground_cost(node, intensity, foreground, fg_mean, fg_variance): #needs to be betterized
+def get_regional_foreground_cost(node, intensity, foreground, fg_mean, fg_variance): 
 	prob = probability_of_foreground(node, foreground, fg_variance, intensity)
 	return -1*(math.log(prob))
 
@@ -87,7 +93,8 @@ def get_regional_background_cost(node, intensity, background, bg_mean, bg_varian
 	prob = probability_of_background(node, background, bg_variance, intensity)
 	return -1*(math.log(prob))
 
-def add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth):
+#connects all non-virtual nodes
+def add_neighbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth):
 	max_neighbours_capacity = 0
 	for node in pixel_nodes(G):
 		contender = 0
@@ -98,7 +105,8 @@ def add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, 
 		if contender > max_neighbours_capacity:
 			max_neighbours_capacity = contender
 	return max_neighbours_capacity
-	
+
+#connects nodes to source using formula
 def add_source_edges(G, intensity, ground_capacity, lambda_val, foreground, fg_mean, fg_variance):
 	for node in pixel_nodes(G):
 		if node in foreground:
@@ -108,6 +116,7 @@ def add_source_edges(G, intensity, ground_capacity, lambda_val, foreground, fg_m
 		else:
 			G.add_edge('S', node, capacity = lambda_val*get_regional_foreground_cost(node, intensity, foreground, fg_mean, fg_variance))
 
+#connects nodes to sink using formula
 def add_sink_edges(G, intensity, ground_capacity, lambda_val, background, bg_mean, bg_variance):
 	for node in pixel_nodes(G):
 		if node in background:
@@ -116,40 +125,36 @@ def add_sink_edges(G, intensity, ground_capacity, lambda_val, background, bg_mea
 			G.add_edge('T', node, capacity = 0)
 		else:
 			G.add_edge('T', node, capacity = lambda_val*get_regional_background_cost(node, intensity, background, bg_mean, bg_variance))
-			
+
+#adds edges			
 def add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, foreground, fg_mean, fg_variance, background, bg_mean, bg_variance, length, breadth):
-	max_neighbours_capacity = add_neigbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth)
+	max_neighbours_capacity = add_neighbour_edges(G, max_neighbours_capacity, intensity, gamma_val, sigma, length, breadth)
 	ground_capacity = max_neighbours_capacity + 1
 	print ('adding source edges')
 	add_source_edges(G, intensity, ground_capacity, lambda_val, foreground, fg_mean, fg_variance)
 	print ('adding sink edges')
 	add_sink_edges(G, intensity, ground_capacity, lambda_val, background, bg_mean, bg_variance)
 
+#creates nodes
 def add_nodes(G, img, length, breadth):
 	G.add_node('S')
 	G.add_node('T')
 	print "l b", length, breadth
 	for i in range(0, length):
 		for j in range(0, breadth):
-			try:
-				G.add_node((i,j), val = img[i][j])
-			except:
-				print "error", i, j
+			G.add_node((i,j), val = img[i][j])
+
 def print_edges(G):
 	for edge in G.edges(data=True):
 		print edge, intensity[edge[0]]
 
+#smooths with 5x5 box filter
 def smooth(img):
     kernel = np.ones((5,5),np.float32)/25
     dst = cv2.filter2D(img,-1,kernel)
     return dst
 
-def smooth2(img):
-	return cv2.blur(img, (5,5))
-
-def smooth3(img):
-	return cv2.GaussianBlur(img, (5,5), 0)
-
+# Extracts distinct intensity values
 def getset(list, intensity):
 	result = []
 	for node in list:
@@ -162,29 +167,32 @@ def getset(list, intensity):
 	print("size", len(list), len(result))
 	return result
 
-def init(img, foreground, background):	
+#Initialization of graph
+def init(img, foreground, background, gamma_val, sigma, lambda_val):	
 	length, breadth = img.shape[0:2]
-	print (img.shape[0:2])
 	ground_capacity, max_neighbours_capacity = 0,0
-	gamma_val, sigma, lambda_val = 10000, 1.5, 0.01
+	
 	G = nx.Graph()
 	add_nodes(G, smooth(img), length, breadth)
-	#add_nodes(G, smooth2(img), length, breadth)
-	#add_nodes(G, smooth3(img), length, breadth)
-	#add_nodes(G, img, length, breadth)
 	intensity = nx.get_node_attributes(G,'val')
+	
 	foreground = getset(foreground, intensity)
 	background = getset(background, intensity)
 
 	fg_mean, fg_variance = gaussian_function(foreground, intensity)
 	bg_mean, bg_variance = gaussian_function(background, intensity)
+	
 	print('adding edges')
-	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, foreground, fg_mean, fg_variance, background, bg_mean, bg_variance, length, breadth)	
+	
+	add_edges(G, ground_capacity, max_neighbours_capacity, intensity, gamma_val, sigma, lambda_val, foreground, fg_mean, fg_variance, background, bg_mean, bg_variance, length, breadth)
 	
 	return G, img
 
-	
-G, img = init(img, foreground, background)
+#constants to be used
+gamma_val, sigma, lambda_val = 10000, 1.5, 0.01
 
+G, img = init(img, foreground, background, gamma_val, sigma, lambda_val)
+
+#dumping graph
 with open('graph.pkl', 'wb') as fp:
 	pickle.dump(G, fp, pickle.HIGHEST_PROTOCOL)
